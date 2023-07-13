@@ -1,19 +1,17 @@
+import os
+import time
 _base_ = '../yolov7/yolov7_l_syncbn_fast_8x16b-300e_coco.py'
 
+# dataset
 dataset_type = 'YOLOv5VOCDataset'
-data_root = '/home/alex/data/TPS2000_item_det_20230315/'  # Root path of data
-# data_root = '/home/alex/data/TPS2000_item_det_train_0002_20230525_v9/'  # Root path of data
-# data_root = r'D:\01.data\05.train_data\TPS2000_item_det_train_1019_20230530/'
-# test_data_root = '/home/alex/data/test_dataset/TPS2000_item_det_test_1004_20230214_shanghai_hongqiaobei/'
-test_data_root = r'D:\01.data\06.test_data\TPS2000_item_det_test_1004_20230214_shanghai_hongqiaobei\\'
+data_root = '/home/alex_thz_item_det/data/TPS2000_item_det_train_1025_20230710'  # Root path of data
+test_data_root = '/home/alex_thz_item_det/data/test_dataset/TPS2000_item_det_test_1004_20230214_shanghai_hongqiaobei'
 
 img_subdir = 'images'
 ann_subdir = 'annotations'
 train_ann_file = 'sets_voc/trainval.txt'
 val_ann_file = 'sets_voc/test.txt'
 
-load_from = 'work_dirs/thz_item_det_yolov7_l_voc-bk/best_pascal_voc_mAP_epoch_26.pth'  # 从给定路径加载模型检查点作为预训练模型。这不会恢复训练。
-resume = False  # 是否从 `load_from` 中定义的检查点恢复。 如果 `load_from` 为 None，它将恢复 `work_dir` 中的最新检查点。
 
 class_name = ('item',)  # according to the label information of class_with_id.txt, set the class_name
 num_classes = len(class_name)
@@ -25,19 +23,39 @@ metainfo = dict(
 # img_scale = (640, 640)
 # anchors = [[(25, 16), (19, 35), (32, 25)], [(23, 51), (34, 41), (31, 63)], [(49, 58), (43, 96), (79, 99)]]
 
-img_scale = (256, 512)  # width, height
-anchors = [[(9, 12), (12, 17), (8, 28)], [(9, 40), (14, 27), (12, 45)], [(18, 45), (14, 62), (28, 71)]]
+# img_scale = (256, 512)  # width, height
+# anchors = [[(9, 12), (12, 17), (8, 28)], [(9, 40), (14, 27), (12, 45)], [(18, 45), (14, 62), (28, 71)]]
+
+img_scale = (160, 320)  # width, height
+anchors = [[(6, 8), (5, 18), (8, 12)], [(6, 26), (10, 22), (8, 32)], [(6, 45), (12, 36), (22, 58)]]
 
 # img_scale = (320, 320)
 # anchors = [[(12, 8), (9, 17), (15, 11)], [(11, 24), (18, 18), (15, 29)], [(14, 46), (23, 31), (39, 50)]]
 
-base_lr = 0.02
-lr_factor = 0.1
+# weight
+load_from = None  # 从给定路径加载模型检查点作为预训练模型。这不会恢复训练。
+resume = False  # 是否从 `load_from` 中定义的检查点恢复。 如果 `load_from` 为 None，它将恢复 `work_dir` 中的最新检查点。
+dataset_name = os.path.basename(data_root)
+model_name = '{{fileBasenameNoExtension}}_%dx%d' % (img_scale[0], img_scale[1])
+time_str = time.strftime('%Y%m%d_%H%M%S', time.localtime(time.time()))
+run_name = '%s_%s' % (model_name, time_str)
+work_dir = os.path.join('work_dirs', dataset_name, run_name)
 
-max_epochs = 100
+# learning rate
+base_lr = 0.01
+lr_factor = 0.01
+
+max_epochs = 200
 train_batch_size_per_gpu = 32
 save_epoch_intervals = 2
 train_num_workers = 16  # recommend to use train_num_workers = nGPU x 4
+
+# loss_cls_weight = _base_.loss_cls_weight * (num_classes / 80 * 3 / _base_.num_det_layers)
+# loss_bbox_weight = _base_.loss_bbox_weight * (3 / _base_.num_det_layers)
+# loss_obj_weight = _base_.loss_obj_weight * ((img_scale[0] / 640) ** 2 * 3 / _base_.num_det_layers)
+loss_cls_weight = 0.0
+loss_bbox_weight = 0.05
+loss_obj_weight = 0.7
 
 # model
 model = dict(
@@ -46,10 +64,9 @@ model = dict(
         prior_generator=dict(base_sizes=anchors),
 
         # loss_cls is dynamically adjusted based on num_classes, but when num_classes = 1, loss_cls is always 0
-        loss_cls=dict(loss_weight=0.5 *
-                                  (num_classes / 80 * 3 / _base_.num_det_layers)),
-        loss_obj=dict(loss_weight=_base_.loss_obj_weight *
-                                  ((img_scale[0] / 640) ** 2 * 3 / _base_.num_det_layers))
+        loss_cls=dict(loss_weight=loss_cls_weight),
+        loss_bbox=dict(loss_weight=loss_bbox_weight),
+        loss_obj=dict(loss_weight=loss_obj_weight)
     )
 )
 
@@ -58,6 +75,15 @@ train_pipeline = [
     dict(type='LoadImageFromFile', file_client_args=_base_.file_client_args),
     dict(type='LoadAnnotations', with_bbox=True),
     dict(type='mmdet.Resize', scale=img_scale, keep_ratio=False),
+    # dict(type='YOLOv5HSVRandomAug',
+    #      hue_delta=0.0,
+    #      saturation_delta=0.0,
+    #      value_delta=0.1),
+    dict(type='PPYOLOERandomDistort',
+         hue_cfg=dict(min=-18, max=18, prob=0.0),
+         saturation_cfg=dict(min=0.5, max=1.5, prob=0.0),
+         contrast_cfg=dict(min=0.9, max=1.1, prob=0.5),
+         brightness_cfg=dict(min=-20, max=20, prob=0.5)),
     dict(type='mmdet.RandomFlip', prob=0.5),
     dict(
         type='mmdet.PackDetInputs',
@@ -87,13 +113,12 @@ train_dataloader = dict(
         ann_subdir=ann_subdir,
         ann_file=train_ann_file,
         data_prefix=dict(img=img_subdir, sub_data_root=''),
+        filter_cfg=dict(filter_empty_gt=False, min_size=16),
         pipeline=train_pipeline
     )
 )
 
-batch_shapes_cfg = dict(type='BatchShapePolicy',
-                        img_size=img_scale[0])
-
+batch_shapes_cfg = dict(img_size=img_scale[0])
 val_dataloader = dict(
     dataset=dict(
         type=dataset_type,
@@ -107,6 +132,7 @@ val_dataloader = dict(
         batch_shapes_cfg=batch_shapes_cfg)
 )
 
+
 test_dataloader = dict(
     dataset=dict(
         type=dataset_type,
@@ -116,7 +142,8 @@ test_dataloader = dict(
         ann_subdir=ann_subdir,
         ann_file=val_ann_file,
         data_prefix=dict(img=img_subdir, sub_data_root=''),
-        pipeline=test_pipeline)
+        pipeline=test_pipeline,
+        batch_shapes_cfg=batch_shapes_cfg)
 )
 
 # evaluator
@@ -155,4 +182,9 @@ default_hooks = dict(
     # logger output interval
     logger=dict(type='LoggerHook', interval=10))
 
-visualizer = dict(vis_backends=[dict(type='LocalVisBackend'), dict(type='WandbVisBackend')])
+wandb_init_kwargs = {'project': dataset_name,
+                     'name': run_name}
+visualizer = dict(vis_backends=[
+    dict(type='LocalVisBackend'),
+    dict(type='WandbVisBackend', init_kwargs=wandb_init_kwargs)
+])

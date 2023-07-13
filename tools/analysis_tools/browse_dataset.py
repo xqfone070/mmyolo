@@ -35,7 +35,7 @@ def parse_args():
         '-m',
         default='transformed',
         type=str,
-        choices=['original', 'transformed', 'pipeline'],
+        choices=['original', 'transformed', 'input_output', 'pipeline'],
         help='display mode; display original pictures or '
         'transformed pictures or comparison pictures. "original" '
         'means show images load from disk; "transformed" means '
@@ -234,6 +234,8 @@ def main():
             image = image_i[0]
         elif args.mode == 'transformed':
             image = image_i[-1]
+        elif args.mode == 'input_output':
+            image = make_grid([image_i[2], image_i[-1]], ['input', 'output'])
         else:
             image = make_grid([result for result in image_i],
                               [result['name'] for result in intermediate_imgs])

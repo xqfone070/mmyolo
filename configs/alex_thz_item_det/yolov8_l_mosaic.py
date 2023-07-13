@@ -1,10 +1,13 @@
+import os
+import time
+
 _base_ = '../yolov8/yolov8_l_syncbn_fast_8xb16-500e_coco.py'
 
 
 # data related
 dataset_type = 'YOLOv5VOCDataset'
-data_root = '/home/alex/data/TPS2000_item_det_20230315/'  # Root path of data
-test_data_root = '/home/alex/data/test_dataset/TPS2000_item_det_test_1004_20230214_shanghai_hongqiaobei'
+data_root = '/home/alex_thz_item_det/data/TPS2000_item_det_20230315'  # Root path of data
+test_data_root = '/home/alex_thz_item_det/data/test_dataset/TPS2000_item_det_test_1004_20230214_shanghai_hongqiaobei'
 img_subdir = 'images'
 ann_subdir = 'annotations'
 train_ann_file = 'sets_voc/trainval.txt'
@@ -22,6 +25,11 @@ metainfo = dict(
 # weight
 load_from = None  # 从给定路径加载模型检查点作为预训练模型。这不会恢复训练。
 resume = False  # 是否从 `load_from` 中定义的检查点恢复。 如果 `load_from` 为 None，它将恢复 `work_dir` 中的最新检查点。
+dataset_name = os.path.basename(data_root)
+model_name = '{{fileBasenameNoExtension}}_%dx%d' % (img_scale[0], img_scale[1])
+time_str = time.strftime('%Y%m%d_%H%M%S', time.localtime(time.time()))
+run_name = '%s_%s' % (model_name, time_str)
+work_dir = os.path.join('work_dirs', dataset_name, run_name)
 
 # learning rate
 base_lr = 0.02
@@ -43,15 +51,6 @@ model = dict(
     )
 )
 
-random_affine = dict(
-        type='YOLOv5RandomAffine',
-        max_rotate_degree=0.0,
-        max_shear_degree=0.0,
-        scaling_ratio_range=(1 - _base_.affine_scale, 1 + _base_.affine_scale),
-        max_aspect_ratio=_base_.max_aspect_ratio,
-        # img_scale is (width, height)
-        border=(-img_scale[0] // 2, -img_scale[1] // 2),
-        border_val=(114, 114, 114))
 
 # pipeline
 train_pipeline = [
@@ -61,7 +60,15 @@ train_pipeline = [
         img_scale=img_scale,
         pad_val=114.0,
         pre_transform=_base_.pre_transform),
-    random_affine,
+    dict(
+        type='YOLOv5RandomAffine',
+        max_rotate_degree=0.0,
+        max_shear_degree=0.0,
+        scaling_ratio_range=(1 - _base_.affine_scale, 1 + _base_.affine_scale),
+        max_aspect_ratio=_base_.max_aspect_ratio,
+        # img_scale is (width, height)
+        border=(-img_scale[0] // 2, -img_scale[1] // 2),
+        border_val=(114, 114, 114)),
     *_base_.last_transform
 ]
 
@@ -73,7 +80,13 @@ train_pipeline_stage2 = [
         scale=img_scale,
         allow_scale_up=True,
         pad_val=dict(img=114.0)),
-    random_affine,
+    dict(
+        type='YOLOv5RandomAffine',
+        max_rotate_degree=0.0,
+        max_shear_degree=0.0,
+        scaling_ratio_range=(1 - _base_.affine_scale, 1 + _base_.affine_scale),
+        max_aspect_ratio=_base_.max_aspect_ratio,
+        border_val=(114, 114, 114)),
     *_base_.last_transform
 ]
 
@@ -182,4 +195,9 @@ custom_hooks = [
         switch_pipeline=train_pipeline_stage2)
 ]
 
-visualizer = dict(vis_backends=[dict(type='LocalVisBackend'), dict(type='WandbVisBackend')])
+wandb_init_kwargs = {'project': dataset_name,
+                     'name': run_name}
+visualizer = dict(vis_backends=[
+    dict(type='LocalVisBackend'),
+    dict(type='WandbVisBackend', init_kwargs=wandb_init_kwargs)
+])
