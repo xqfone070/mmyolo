@@ -1,32 +1,32 @@
 import os
 import time
-_base_ = '../yolov8/yolov8_l_syncbn_fast_8xb16-500e_coco.py'
 
-# dataset
+_base_ = '../configs/yolov8/yolov8_l_syncbn_fast_8xb16-500e_coco.py'
+
+# data related
 dataset_type = 'YOLOv5VOCDataset'
-data_root = '/home/alex/data/TPS2000_item_det_train_1025_20230710'  # Root path of data
-test_data_root = '/home/alex/data/test_dataset/TPS2000_item_det_test_1004_20230214_shanghai_hongqiaobei'
+data_root = '/home/alex_thz_item_det/data/TPS2000_item_det_20230315'  # Root path of data
+test_data_root = '/home/alex_thz_item_det/data/test_dataset/TPS2000_item_det_test_1004_20230214_shanghai_hongqiaobei'
 img_subdir = 'images'
 ann_subdir = 'annotations'
 train_ann_file = 'sets_voc/trainval.txt'
 val_ann_file = 'sets_voc/test.txt'
 
-# classes
+img_scale = (160, 320)
 class_name = ('item',)  # according to the label information of class_with_id.txt, set the class_name
 num_classes = len(class_name)
 metainfo = dict(
     classes=class_name,
     palette=[(220, 20, 60)]  # the color of drawing, free to set
 )
-img_scale = (160, 320)
+
 
 # weight
 load_from = None  # 从给定路径加载模型检查点作为预训练模型。这不会恢复训练。
 resume = False  # 是否从 `load_from` 中定义的检查点恢复。 如果 `load_from` 为 None，它将恢复 `work_dir` 中的最新检查点。
 dataset_name = os.path.basename(data_root)
-model_name = '{{fileBasenameNoExtension}}_%dx%d' % (img_scale[0], img_scale[1])
 time_str = time.strftime('%Y%m%d_%H%M%S', time.localtime(time.time()))
-run_name = '%s_%s' % (model_name, time_str)
+run_name = '%s_%dx%d_%s' % (model_name, img_scale[0], img_scale[1], time_str)
 work_dir = os.path.join('work_dirs', dataset_name, run_name)
 
 # learning rate
@@ -34,7 +34,7 @@ base_lr = 0.02
 lr_factor = 0.01
 
 # train config
-max_epochs = 200
+max_epochs = 100
 train_batch_size_per_gpu = 32
 save_epoch_intervals = 2
 train_num_workers = 16  # recommend to use train_num_workers = nGPU x 4
@@ -49,31 +49,59 @@ model = dict(
     )
 )
 
+
 # pipeline
 train_pipeline = [
-    dict(type='LoadImageFromFile', file_client_args=_base_.file_client_args),
-    dict(type='LoadAnnotations', with_bbox=True),
-    dict(type='mmdet.Resize', scale=img_scale, keep_ratio=False),
-    dict(type='PPYOLOERandomDistort',
-         hue_cfg=dict(min=-18, max=18, prob=0.0),
-         saturation_cfg=dict(min=0.5, max=1.5, prob=0.0),
-         contrast_cfg=dict(min=0.9, max=1.1, prob=0.5),
-         brightness_cfg=dict(min=-20, max=20, prob=0.5)),
-    dict(type='mmdet.RandomFlip', prob=0.5),
+    *_base_.pre_transform,
     dict(
-        type='mmdet.PackDetInputs',
-        meta_keys=('img_id', 'img_path', 'ori_shape', 'img_shape', 'flip',
-                   'flip_direction', 'scale_factor'))
+        type='Mosaic',
+        img_scale=img_scale,
+        pad_val=114.0,
+        pre_transform=_base_.pre_transform),
+    dict(
+        type='YOLOv5RandomAffine',
+        max_rotate_degree=0.0,
+        max_shear_degree=0.0,
+        scaling_ratio_range=(1 - _base_.affine_scale, 1 + _base_.affine_scale),
+        max_aspect_ratio=_base_.max_aspect_ratio,
+        # img_scale is (width, height)
+        border=(-img_scale[0] // 2, -img_scale[1] // 2),
+        border_val=(114, 114, 114)),
+    *_base_.last_transform
 ]
+
+train_pipeline_stage2 = [
+    *_base_.pre_transform,
+    dict(type='YOLOv5KeepRatioResize', scale=img_scale),
+    dict(
+        type='LetterResize',
+        scale=img_scale,
+        allow_scale_up=True,
+        pad_val=dict(img=114.0)),
+    dict(
+        type='YOLOv5RandomAffine',
+        max_rotate_degree=0.0,
+        max_shear_degree=0.0,
+        scaling_ratio_range=(1 - _base_.affine_scale, 1 + _base_.affine_scale),
+        max_aspect_ratio=_base_.max_aspect_ratio,
+        border_val=(114, 114, 114)),
+    *_base_.last_transform
+]
+
 
 test_pipeline = [
     dict(type='LoadImageFromFile', file_client_args=_base_.file_client_args),
-    dict(type='mmdet.Resize', scale=img_scale, keep_ratio=False),
+    dict(type='YOLOv5KeepRatioResize', scale=img_scale),
+    dict(
+        type='LetterResize',
+        scale=img_scale,
+        allow_scale_up=False,
+        pad_val=dict(img=114)),
     dict(type='LoadAnnotations', with_bbox=True, _scope_='mmdet'),
     dict(
         type='mmdet.PackDetInputs',
         meta_keys=('img_id', 'img_path', 'ori_shape', 'img_shape',
-                   'scale_factor'))
+                   'scale_factor', 'pad_param'))
 ]
 
 # dataloader
@@ -123,15 +151,19 @@ val_evaluator = dict(
 
 test_evaluator = val_evaluator
 
+
 optim_wrapper = dict(
     optimizer=dict(
         lr=base_lr,
         batch_size_per_gpu=train_batch_size_per_gpu))
 
+
 train_cfg = dict(
     max_epochs=max_epochs,
     val_begin=1,
-    val_interval=1  # the test evaluation is performed  iteratively every val_interval round
+    val_interval=1,  # the test evaluation is performed  iteratively every val_interval round
+    dynamic_intervals=[((max_epochs - _base_.close_mosaic_epochs),
+                        _base_.val_interval_stage2)]
 )
 
 default_hooks = dict(
@@ -146,6 +178,7 @@ default_hooks = dict(
     # logger output interval
     logger=dict(type='LoggerHook', interval=10))
 
+
 custom_hooks = [
     dict(
         type='EMAHook',
@@ -154,8 +187,11 @@ custom_hooks = [
         update_buffers=True,
         strict_load=False,
         priority=49),
+    dict(
+        type='mmdet.PipelineSwitchHook',
+        switch_epoch=max_epochs - _base_.close_mosaic_epochs,
+        switch_pipeline=train_pipeline_stage2)
 ]
-
 
 wandb_init_kwargs = {'project': dataset_name,
                      'name': run_name}

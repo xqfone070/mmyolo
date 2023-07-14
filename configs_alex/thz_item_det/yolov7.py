@@ -1,10 +1,11 @@
-import os.path
+import os
 import time
-_base_ = '../yolov5/voc/yolov5_l-v61_fast_1xb32-50e_voc.py'
+_base_ = '../configs/yolov7/yolov7_l_syncbn_fast_8x16b-300e_coco.py'
+model_name = 'yolov7_l'
 
 # dataset
 dataset_type = 'YOLOv5VOCDataset'
-data_root = '/home/alex_thz_item_det/data/TPS2000_item_det_train_1025_20230710'
+data_root = '/home/alex_thz_item_det/data/TPS2000_item_det_train_1025_20230710'  # Root path of data
 test_data_root = '/home/alex_thz_item_det/data/test_dataset/TPS2000_item_det_test_1004_20230214_shanghai_hongqiaobei'
 
 img_subdir = 'images'
@@ -20,24 +21,28 @@ metainfo = dict(
     palette=[(220, 20, 60)]  # the color of drawing, free to set
 )
 
-img_scale = (160, 320)
+# img_scale = (640, 640)
+# anchors = [[(25, 16), (19, 35), (32, 25)], [(23, 51), (34, 41), (31, 63)], [(49, 58), (43, 96), (79, 99)]]
+
+# img_scale = (256, 512)  # width, height
+# anchors = [[(9, 12), (12, 17), (8, 28)], [(9, 40), (14, 27), (12, 45)], [(18, 45), (14, 62), (28, 71)]]
+
+img_scale = (160, 320)  # width, height
 anchors = [[(6, 8), (5, 18), (8, 12)], [(6, 26), (10, 22), (8, 32)], [(6, 45), (12, 36), (22, 58)]]
 
 # img_scale = (320, 320)
-# anchors = [[(11, 8), (9, 16), (15, 11)], [(11, 24), (18, 17), (14, 27)], [(17, 38), (23, 28), (33, 46)]]
-
+# anchors = [[(12, 8), (9, 17), (15, 11)], [(11, 24), (18, 18), (15, 29)], [(14, 46), (23, 31), (39, 50)]]
 
 # weight
 load_from = None  # 从给定路径加载模型检查点作为预训练模型。这不会恢复训练。
 resume = False  # 是否从 `load_from` 中定义的检查点恢复。 如果 `load_from` 为 None，它将恢复 `work_dir` 中的最新检查点。
 dataset_name = os.path.basename(data_root)
-model_name = '{{fileBasenameNoExtension}}_%dx%d' % (img_scale[0], img_scale[1])
 time_str = time.strftime('%Y%m%d_%H%M%S', time.localtime(time.time()))
-run_name = '%s_%s' % (model_name, time_str)
+run_name = '%s_%dx%d_%s' % (model_name, img_scale[0], img_scale[1], time_str)
 work_dir = os.path.join('work_dirs', dataset_name, run_name)
 
 # learning rate
-base_lr = 0.05
+base_lr = 0.01
 lr_factor = 0.01
 
 max_epochs = 200
@@ -52,24 +57,16 @@ loss_cls_weight = 0.0
 loss_bbox_weight = 0.05
 loss_obj_weight = 0.7
 
-# only on Val
-batch_shapes_cfg = dict(img_size=img_scale[0])
-
 # model
 model = dict(
     bbox_head=dict(
         head_module=dict(num_classes=num_classes),
         prior_generator=dict(base_sizes=anchors),
 
-        loss_cls=dict(
-            loss_weight=0.21638 * (num_classes / 80),
-            class_weight=0.5),
-        loss_bbox=dict(loss_weight=0.02),
-        loss_obj=dict(
-            loss_weight=0.51728 *
-                        ((img_scale[0] / 640) ** 2),
-            class_weight=0.67198),
-        prior_match_thr=4.0
+        # loss_cls is dynamically adjusted based on num_classes, but when num_classes = 1, loss_cls is always 0
+        loss_cls=dict(loss_weight=loss_cls_weight),
+        loss_bbox=dict(loss_weight=loss_bbox_weight),
+        loss_obj=dict(loss_weight=loss_obj_weight)
     )
 )
 
@@ -78,6 +75,10 @@ train_pipeline = [
     dict(type='LoadImageFromFile', file_client_args=_base_.file_client_args),
     dict(type='LoadAnnotations', with_bbox=True),
     dict(type='mmdet.Resize', scale=img_scale, keep_ratio=False),
+    # dict(type='YOLOv5HSVRandomAug',
+    #      hue_delta=0.0,
+    #      saturation_delta=0.0,
+    #      value_delta=0.1),
     dict(type='PPYOLOERandomDistort',
          hue_cfg=dict(min=-18, max=18, prob=0.0),
          saturation_cfg=dict(min=0.5, max=1.5, prob=0.0),
@@ -100,13 +101,11 @@ test_pipeline = [
                    'scale_factor'))
 ]
 
-
 # dataloader
 train_dataloader = dict(
     batch_size=train_batch_size_per_gpu,
     num_workers=train_num_workers,
     dataset=dict(
-        _delete_=True,
         type=dataset_type,
         metainfo=metainfo,
         data_root=data_root,
@@ -119,7 +118,7 @@ train_dataloader = dict(
     )
 )
 
-
+batch_shapes_cfg = dict(img_size=img_scale[0])
 val_dataloader = dict(
     dataset=dict(
         type=dataset_type,
@@ -173,15 +172,15 @@ default_hooks = dict(
     checkpoint=dict(
         type='CheckpointHook',
         interval=save_epoch_intervals,
-        max_keep_ckpts=5
+        max_keep_ckpts=5,
+        # save_best=['pascal_voc/AP30', 'pascal_voc/AP50', 'pascal_voc/mAP'],
+        # rule='greater'
     ),
     param_scheduler=dict(
         lr_factor=lr_factor,
         max_epochs=max_epochs),
     # logger output interval
     logger=dict(type='LoggerHook', interval=10))
-
-
 
 wandb_init_kwargs = {'project': dataset_name,
                      'name': run_name}

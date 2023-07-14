@@ -15,7 +15,7 @@ fi
 
 
 
-config_file='configs/alex_thz_item_det/yolov8_l.py'
+config_file='configs_alex/thz_item_det/yolov8.py'
 echo "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES"
 echo "gpu_num=$gpu_num"
 echo "dist_train=$dist_train"
