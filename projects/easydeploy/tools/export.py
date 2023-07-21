@@ -2,6 +2,7 @@ import argparse
 import os
 import warnings
 from io import BytesIO
+import glob
 
 import onnx
 import torch
@@ -21,18 +22,21 @@ warnings.filterwarnings(action='ignore', category=ResourceWarning)
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('config', help='Config file')
-    parser.add_argument('checkpoint', help='Checkpoint file')
+    parser.add_argument('work_dir', help='Path of config file, checkpoint file and save dir')
+    # find config file automatically in workdir
+    # parser.add_argument('config', help='Config file')
+    parser.add_argument('--checkpoint', default='best',
+                        help='filename or keyword of Checkpoint file, best or epoch number')
     parser.add_argument(
         '--model-only', action='store_true', help='Export model only')
-    parser.add_argument(
-        '--work-dir', default='./work_dir', help='Path to save export model')
+    # parser.add_argument(
+    #     '--work-dir', default='./work_dir', help='Path to save export model')
     parser.add_argument(
         '--img-size',
         nargs='+',
         type=int,
         default=[640, 640],
-        help='Image size of height and width')
+        help='Image size of width and height')
     parser.add_argument('--batch-size', type=int, default=1, help='Batch size')
     parser.add_argument(
         '--device', default='cuda:0', help='Device used for inference')
@@ -66,6 +70,23 @@ def parse_args():
         help='Score threshold for NMS')
     args = parser.parse_args()
     args.img_size *= 2 if len(args.img_size) == 1 else 1
+    # w, h - h, w
+    args.img_size[0], args.img_size[1] = args.img_size[1], args.img_size[0]
+
+    config_file_pattern = os.path.join(args.work_dir, '*.py')
+    config_files = glob.glob(config_file_pattern)
+    assert(len(config_files) == 1)
+    args.config = config_files[0]
+    if args.checkpoint.endswith('.pth'):
+        args.checkpoint = os.path.join(args.work_dir, args.checkpoint)
+    else:
+        ck_pattern = os.path.join(args.work_dir, '*%s*.pth' % args.checkpoint)
+        ck_files = glob.glob(ck_pattern)
+        assert(len(ck_files) == 1)
+        args.checkpoint = ck_files[0]
+    args.onnx_file = args.checkpoint.replace('.pth', '.onnx')
+    for arg in vars(args):
+        print('%s: %s' % (arg, getattr(args, arg)))
     return args
 
 
@@ -92,6 +113,7 @@ def main():
             score_threshold=args.score_threshold,
             backend=args.backend)
         output_names = ['num_dets', 'boxes', 'scores', 'labels']
+
     baseModel = build_model_from_cfg(args.config, args.checkpoint, args.device)
 
     deploy_model = DeployModel(
@@ -103,7 +125,7 @@ def main():
     # dry run
     deploy_model(fake_input)
 
-    save_onnx_path = os.path.join(args.work_dir, 'end2end.onnx')
+    save_onnx_path = args.onnx_file
     # export onnx
     with BytesIO() as f:
         torch.onnx.export(
