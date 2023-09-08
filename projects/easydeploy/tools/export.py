@@ -84,7 +84,10 @@ def parse_args():
         ck_files = glob.glob(ck_pattern)
         assert(len(ck_files) == 1)
         args.checkpoint = ck_files[0]
-    args.onnx_file = args.checkpoint.replace('.pth', '.onnx')
+
+    basename, ext = os.path.splitext(args.checkpoint)
+    args.onnx_file = '%s_conf%.2f_nms%.2f.onnx' % (basename, args.score_threshold, args.iou_threshold)
+
     for arg in vars(args):
         print('%s: %s' % (arg, getattr(args, arg)))
     return args
