@@ -1,31 +1,32 @@
 import os.path
 import time
-_base_ = '../configs/yolov5/voc/yolov5_l-v61_fast_1xb32-50e_voc.py'
-model_name = 'yolov5_l'
+_base_ = '../../configs/yolov5/yolov5_s-v61_syncbn_8xb16-300e_coco.py'
+model_name = 'yolov5_s'
 
 # dataset
 dataset_type = 'YOLOv5VOCDataset'
-data_root = '/home/alex_thz_item_det/data/TPS2000_item_det_train_1025_20230710'
-test_data_root = '/home/alex_thz_item_det/data/test_dataset/TPS2000_item_det_test_1004_20230214_shanghai_hongqiaobei'
+data_root = '/home/alex/data/TPS2000_item_det_train_1026_20230718'
 
 img_subdir = 'images'
 ann_subdir = 'annotations'
-train_ann_file = 'sets_voc/trainval.txt'
-val_ann_file = 'sets_voc/test.txt'
+# set_subdir = 'sets_voc'
+set_subdir = 'sets_b300_r4-1'
+train_ann_file = os.path.join(set_subdir, 'trainval.txt')
+val_ann_file = os.path.join(set_subdir, 'test.txt')
 
 
-class_name = ('item',)  # according to the label information of class_with_id.txt, set the class_name
+class_name = ('item', )  # according to the label information of class_with_id.txt, set the class_name
 num_classes = len(class_name)
 metainfo = dict(
     classes=class_name,
     palette=[(220, 20, 60)]  # the color of drawing, free to set
 )
 
-img_scale = (160, 320)
-anchors = [[(6, 8), (5, 18), (8, 12)], [(6, 26), (10, 22), (8, 32)], [(6, 45), (12, 36), (22, 58)]]
+# img_scale = (160, 320)
+# anchors = [[(6, 8), (5, 18), (8, 12)], [(6, 26), (9, 21), (8, 31)], [(6, 44), (12, 35), (21, 58)]]
 
-# img_scale = (320, 320)
-# anchors = [[(11, 8), (9, 16), (15, 11)], [(11, 24), (18, 17), (14, 27)], [(17, 38), (23, 28), (33, 46)]]
+img_scale = (320, 640)
+anchors = [[(12, 17), (10, 36), (15, 24)], [(12, 51), (19, 42), (16, 62)], [(12, 88), (23, 71), (40, 115)]]
 
 
 # weight
@@ -38,22 +39,20 @@ work_dir = os.path.join('work_dirs', dataset_name, run_name)
 
 # learning rate
 base_lr = 0.01
-lr_factor = 0.01
+lr_factor = 0.1
 
 max_epochs = 200
-train_batch_size_per_gpu = 32
-save_epoch_intervals = 2
-train_num_workers = 16  # recommend to use train_num_workers = nGPU x 4
-
-# loss_cls_weight = _base_.loss_cls_weight * (num_classes / 80 * 3 / _base_.num_det_layers)
-# loss_bbox_weight = _base_.loss_bbox_weight * (3 / _base_.num_det_layers)
-# loss_obj_weight = _base_.loss_obj_weight * ((img_scale[0] / 640) ** 2 * 3 / _base_.num_det_layers)
-loss_cls_weight = 0.0
-loss_bbox_weight = 0.05
-loss_obj_weight = 0.7
+train_batch_size_per_gpu = 64
+save_epoch_intervals = 10
+train_num_workers = 4  # recommend to use train_num_workers = nGPU x 4
 
 # only on Val
 batch_shapes_cfg = dict(img_size=img_scale[0])
+
+loss_cls_weight = 0.5
+loss_bbox_weight = 0.05
+loss_obj_weight = 1.0
+num_det_layers = 3
 
 # model
 model = dict(
@@ -62,13 +61,12 @@ model = dict(
         prior_generator=dict(base_sizes=anchors),
 
         loss_cls=dict(
-            loss_weight=0.21638 * (num_classes / 80),
-            class_weight=0.5),
-        loss_bbox=dict(loss_weight=0.02),
+            loss_weight=loss_cls_weight *
+                        (num_classes / 80 * 3 / num_det_layers)),
+        loss_bbox=dict(loss_weight=loss_bbox_weight * (3 / num_det_layers)),
         loss_obj=dict(
-            loss_weight=0.51728 *
-                        ((img_scale[0] / 640) ** 2),
-            class_weight=0.67198),
+            loss_weight=loss_obj_weight *
+                        ((img_scale[0] / 640) ** 2 * 3 / num_det_layers)),
         prior_match_thr=4.0
     )
 )
@@ -81,8 +79,17 @@ train_pipeline = [
     dict(type='PPYOLOERandomDistort',
          hue_cfg=dict(min=-18, max=18, prob=0.0),
          saturation_cfg=dict(min=0.5, max=1.5, prob=0.0),
-         contrast_cfg=dict(min=0.9, max=1.1, prob=0.5),
-         brightness_cfg=dict(min=-20, max=20, prob=0.5)),
+         contrast_cfg=dict(min=0.7, max=1.3, prob=0.5),
+         brightness_cfg=dict(min=-30, max=30, prob=0.5)),
+    dict(
+        type='YOLOv5RandomAffine',
+        max_rotate_degree=0.0,
+        max_shear_degree=0.0,
+        max_translate_ratio=0.1,
+        scaling_ratio_range=(0.8, 1.2),
+        # img_scale is (width, height)
+        border=(0, 0),
+        border_val=(0, 0, 0)),
     dict(type='mmdet.RandomFlip', prob=0.5),
     dict(
         type='mmdet.PackDetInputs',
@@ -114,7 +121,7 @@ train_dataloader = dict(
         ann_subdir=ann_subdir,
         ann_file=train_ann_file,
         data_prefix=dict(img=img_subdir, sub_data_root=''),
-        filter_cfg=dict(filter_empty_gt=False, min_size=16),
+        filter_cfg=dict(filter_empty_gt=False, min_size=4),
         pipeline=train_pipeline
     )
 )
@@ -133,19 +140,7 @@ val_dataloader = dict(
         batch_shapes_cfg=batch_shapes_cfg)
 )
 
-
-test_dataloader = dict(
-    dataset=dict(
-        type=dataset_type,
-        metainfo=metainfo,
-        data_root=test_data_root,
-        img_subdir=img_subdir,
-        ann_subdir=ann_subdir,
-        ann_file=val_ann_file,
-        data_prefix=dict(img=img_subdir, sub_data_root=''),
-        pipeline=test_pipeline,
-        batch_shapes_cfg=batch_shapes_cfg)
-)
+test_dataloader = val_dataloader
 
 # evaluator
 val_evaluator = dict(
@@ -168,19 +163,20 @@ train_cfg = dict(
     val_interval=1  # the test evaluation is performed  iteratively every val_interval round
 )
 
+
 default_hooks = dict(
-    # set how many epochs to save the model, and the maximum number of models to save,`save_best` is also the best model (recommended).
+    # set how many epochs to save the model, and the maximum number of models to save,
+    # `save_best` is also the best model (recommended).
     checkpoint=dict(
         type='CheckpointHook',
         interval=save_epoch_intervals,
-        max_keep_ckpts=5
+        max_keep_ckpts=10
     ),
     param_scheduler=dict(
         lr_factor=lr_factor,
         max_epochs=max_epochs),
     # logger output interval
     logger=dict(type='LoggerHook', interval=10))
-
 
 
 wandb_init_kwargs = {'project': dataset_name,

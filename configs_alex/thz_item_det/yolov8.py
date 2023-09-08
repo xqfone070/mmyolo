@@ -1,16 +1,18 @@
 import os
 import time
-_base_ = '../configs/yolov8/yolov8_l_syncbn_fast_8xb16-500e_coco.py'
-model_name = 'yolov8_l'
+_base_ = '../../configs/yolov8/yolov8_n_syncbn_fast_8xb16-500e_coco.py'
+model_name = 'yolov8_n'
 
 # dataset
 dataset_type = 'YOLOv5VOCDataset'
-data_root = '/home/alex/data/TPS2000_item_det_train_1025_20230710'  # Root path of data
-test_data_root = '/home/alex/data/test_dataset/TPS2000_item_det_test_1004_20230214_shanghai_hongqiaobei'
+data_root = '/home/alex/data/TPS2000_item_det_train_1027_20230904'  # Root path of data
+
 img_subdir = 'images'
 ann_subdir = 'annotations'
-train_ann_file = 'sets_voc/trainval.txt'
-val_ann_file = 'sets_voc/test.txt'
+# set_subdir = 'sets_b300_r4-1'
+set_subdir = 'sets'
+train_ann_file = os.path.join(set_subdir, 'trainval.txt')
+val_ann_file = os.path.join(set_subdir, 'test.txt')
 
 # classes
 class_name = ('item',)  # according to the label information of class_with_id.txt, set the class_name
@@ -30,14 +32,15 @@ run_name = '%s_%dx%d_%s' % (model_name, img_scale[0], img_scale[1], time_str)
 work_dir = os.path.join('work_dirs', dataset_name, run_name)
 
 # learning rate
-base_lr = 0.02
-lr_factor = 0.01
+base_lr = 0.01
+lr_factor = 0.1
 
 # train config
 max_epochs = 200
-train_batch_size_per_gpu = 4
+train_batch_size_per_gpu = 64
 save_epoch_intervals = 10
 train_num_workers = 16  # recommend to use train_num_workers = nGPU x 4
+
 
 # model
 model = dict(
@@ -54,11 +57,19 @@ train_pipeline = [
     dict(type='LoadImageFromFile', file_client_args=_base_.file_client_args),
     dict(type='LoadAnnotations', with_bbox=True),
     dict(type='mmdet.Resize', scale=img_scale, keep_ratio=False),
-    dict(type='PPYOLOERandomDistort',
-         hue_cfg=dict(min=-18, max=18, prob=0.0),
-         saturation_cfg=dict(min=0.5, max=1.5, prob=0.0),
-         contrast_cfg=dict(min=0.9, max=1.1, prob=0.5),
-         brightness_cfg=dict(min=-20, max=20, prob=0.5)),
+    # dict(type='PPYOLOERandomDistort',
+    #      hue_cfg=dict(min=-18, max=18, prob=0.0),
+    #      saturation_cfg=dict(min=0.5, max=1.5, prob=0.0),
+    #      contrast_cfg=dict(min=0.9, max=1.1, prob=0.5),
+    #      brightness_cfg=dict(min=-20, max=20, prob=0.5)),
+    # dict(
+    #     type='YOLOv5RandomAffine',
+    #     max_rotate_degree=0.0,
+    #     max_shear_degree=0.0,
+    #     max_translate_ratio=0.1,
+    #     scaling_ratio_range=(0.8, 1.2),
+    #     border=(0, 0),
+    #     border_val=(0, 0, 0)),
     dict(type='mmdet.RandomFlip', prob=0.5),
     dict(
         type='mmdet.PackDetInputs',
@@ -88,7 +99,7 @@ train_dataloader = dict(
         ann_subdir=ann_subdir,
         ann_file=train_ann_file,
         data_prefix=dict(img=img_subdir, sub_data_root=''),
-        filter_cfg=dict(filter_empty_gt=False, min_size=8),
+        filter_cfg=dict(filter_empty_gt=False, min_size=4),
         pipeline=train_pipeline
     )
 )
@@ -105,17 +116,8 @@ val_dataloader = dict(
         pipeline=test_pipeline)
 )
 
-test_dataloader = dict(
-    dataset=dict(
-        type=dataset_type,
-        metainfo=metainfo,
-        data_root=test_data_root,
-        img_subdir=img_subdir,
-        ann_subdir=ann_subdir,
-        ann_file=val_ann_file,
-        data_prefix=dict(img=img_subdir, sub_data_root=''),
-        pipeline=test_pipeline)
-)
+test_dataloader = val_dataloader
+
 
 # evaluator
 val_evaluator = dict(
@@ -146,6 +148,7 @@ default_hooks = dict(
     # logger output interval
     logger=dict(type='LoggerHook', interval=10))
 
+
 custom_hooks = [
     dict(
         type='EMAHook',
@@ -161,5 +164,5 @@ wandb_init_kwargs = {'project': dataset_name,
                      'name': run_name}
 visualizer = dict(vis_backends=[
     dict(type='LocalVisBackend'),
-    dict(type='WandbVisBackend', init_kwargs=wandb_init_kwargs)
+    # dict(type='WandbVisBackend', init_kwargs=wandb_init_kwargs)
 ])

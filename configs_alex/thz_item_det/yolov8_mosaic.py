@@ -1,7 +1,8 @@
 import os
 import time
 
-_base_ = '../configs/yolov8/yolov8_l_syncbn_fast_8xb16-500e_coco.py'
+_base_ = '../../configs/yolov8/yolov8_l_syncbn_fast_8xb16-500e_coco.py'
+model_name = 'yolov8_l'
 
 # data related
 dataset_type = 'YOLOv5VOCDataset'
