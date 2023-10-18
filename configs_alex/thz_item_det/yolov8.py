@@ -5,7 +5,7 @@ model_name = 'yolov8_n'
 
 # dataset
 dataset_type = 'YOLOv5VOCDataset'
-data_root = '/home/alex/data/TPS2000_item_det_train_1027_20230904'  # Root path of data
+data_root = '/home/alex/data/TPS2000_item_det_train_1028_20231008'  # Root path of data
 
 img_subdir = 'images'
 ann_subdir = 'annotations'
@@ -33,11 +33,12 @@ work_dir = os.path.join('work_dirs', dataset_name, run_name)
 
 # learning rate
 base_lr = 0.01
-lr_factor = 0.1
+lr_factor = 0.01
+weight_decay = 0.0005
 
 # train config
 max_epochs = 200
-train_batch_size_per_gpu = 64
+train_batch_size_per_gpu = 16
 save_epoch_intervals = 10
 train_num_workers = 16  # recommend to use train_num_workers = nGPU x 4
 
@@ -128,7 +129,9 @@ test_evaluator = val_evaluator
 optim_wrapper = dict(
     optimizer=dict(
         lr=base_lr,
+        # weight_decay=weight_decay,
         batch_size_per_gpu=train_batch_size_per_gpu))
+
 
 train_cfg = dict(
     max_epochs=max_epochs,
@@ -164,5 +167,5 @@ wandb_init_kwargs = {'project': dataset_name,
                      'name': run_name}
 visualizer = dict(vis_backends=[
     dict(type='LocalVisBackend'),
-    # dict(type='WandbVisBackend', init_kwargs=wandb_init_kwargs)
+    dict(type='WandbVisBackend', init_kwargs=wandb_init_kwargs)
 ])
