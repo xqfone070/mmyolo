@@ -48,8 +48,9 @@ use_mosaic = True
 # model
 model = dict(
     bbox_head=dict(
-        head_module=dict(num_classes=num_classes),
-        reg_max=16,
+        head_module=dict(
+            num_classes=num_classes,
+            reg_max=16)
     ),
     train_cfg=dict(
         assigner=dict(num_classes=num_classes)
