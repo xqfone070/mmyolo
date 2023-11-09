@@ -38,15 +38,18 @@ weight_decay = 0.0005
 
 # train config
 max_epochs = 200
-train_batch_size_per_gpu = 16
+train_batch_size_per_gpu = 64
 save_epoch_intervals = 10
 train_num_workers = 16  # recommend to use train_num_workers = nGPU x 4
 
+# pipeline
+use_mosaic = True
 
 # model
 model = dict(
     bbox_head=dict(
-        head_module=dict(num_classes=num_classes)
+        head_module=dict(num_classes=num_classes),
+        reg_max=16,
     ),
     train_cfg=dict(
         assigner=dict(num_classes=num_classes)
@@ -54,29 +57,51 @@ model = dict(
 )
 
 # pipeline
-train_pipeline = [
+normal_train_pipeline = [
     dict(type='LoadImageFromFile', file_client_args=_base_.file_client_args),
     dict(type='LoadAnnotations', with_bbox=True),
     dict(type='mmdet.Resize', scale=img_scale, keep_ratio=False),
-    # dict(type='PPYOLOERandomDistort',
-    #      hue_cfg=dict(min=-18, max=18, prob=0.0),
-    #      saturation_cfg=dict(min=0.5, max=1.5, prob=0.0),
-    #      contrast_cfg=dict(min=0.9, max=1.1, prob=0.5),
-    #      brightness_cfg=dict(min=-20, max=20, prob=0.5)),
-    # dict(
-    #     type='YOLOv5RandomAffine',
-    #     max_rotate_degree=0.0,
-    #     max_shear_degree=0.0,
-    #     max_translate_ratio=0.1,
-    #     scaling_ratio_range=(0.8, 1.2),
-    #     border=(0, 0),
-    #     border_val=(0, 0, 0)),
+    dict(type='PPYOLOERandomDistort',
+         hue_cfg=dict(min=-18, max=18, prob=0.0),
+         saturation_cfg=dict(min=0.5, max=1.5, prob=0.0),
+         contrast_cfg=dict(min=0.9, max=1.1, prob=0.5),
+         brightness_cfg=dict(min=-20, max=20, prob=0.5)),
+    dict(
+        type='YOLOv5RandomAffine',
+        max_rotate_degree=0.0,
+        max_shear_degree=0.0,
+        max_translate_ratio=0.1,
+        scaling_ratio_range=(0.8, 1.2),
+        border=(0, 0),
+        border_val=(0, 0, 0)),
     dict(type='mmdet.RandomFlip', prob=0.5),
     dict(
         type='mmdet.PackDetInputs',
         meta_keys=('img_id', 'img_path', 'ori_shape', 'img_shape', 'flip',
                    'flip_direction', 'scale_factor'))
 ]
+
+
+mosaic_train_pipeline = [
+    *_base_.pre_transform,
+    dict(
+        type='Mosaic',
+        img_scale=img_scale,
+        pad_val=114.0,
+        pre_transform=_base_.pre_transform),
+    dict(
+        type='YOLOv5RandomAffine',
+        max_rotate_degree=0.0,
+        max_shear_degree=0.0,
+        scaling_ratio_range=(1 - _base_.affine_scale, 1 + _base_.affine_scale),
+        max_aspect_ratio=_base_.max_aspect_ratio,
+        # img_scale is (width, height)
+        border=(-img_scale[0] // 2, -img_scale[1] // 2),
+        border_val=(114, 114, 114)),
+    *_base_.last_transform
+]
+
+train_pipeline = mosaic_train_pipeline if use_mosaic else normal_train_pipeline
 
 test_pipeline = [
     dict(type='LoadImageFromFile', file_client_args=_base_.file_client_args),
