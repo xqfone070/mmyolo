@@ -23,13 +23,15 @@ def prune(model, amount=0.5):
     import torch.nn as nn
     for name, m in model.named_modules():
         if isinstance(m, nn.Conv2d):
-            prune.l1_unstructured(m, name='weight', amount=amount)  # prune
+            print(name, ': ', m.weight.shape)
+            # prune.l1_unstructured(m, name='weight', amount=amount)  # prune
+            prune.ln_structured(m, name='weight', amount=amount, n=2, dim=0)
             prune.remove(m, 'weight')  # make permanent
 
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description='MMYOLO prunea model')
+        description='MMYOLO prune a model')
     parser.add_argument('config', help='test config file path')
     parser.add_argument('checkpoint', help='checkpoint file')
     parser.add_argument('--amount', type=float, default=0.3, help='prune amount')

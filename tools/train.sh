@@ -24,24 +24,31 @@ fi
 
 
 # config_file='configs_alex/thz_body_det/yolov5.py'
-# config_file='configs_alex/thz_item_det/yolov8.py'
-config_file='configs_alex/thz_body_det/yolov8.py'
+config_file='configs_alex/thz_item_det/yolov8.py'
+# config_file='configs_alex/thz_body_det/yolov8.py'
 echo "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES"
 echo "gpu_num=$gpu_num"
 echo "dist_train=$dist_train"
 echo "config_file=$config_file"
 
+eval "$(conda shell.bash hook)"
+conda activate mmyolo
+
 if [ "$dist_train" = true ]
 then
   chmod +x tools/dist_train.sh
   dos2unix tools/dist_train.sh
+  echo "nohup tools/dist_train.sh $config_file "$gpu_num" >"$log_file" 2>&1 &"
   nohup tools/dist_train.sh $config_file "$gpu_num" >"$log_file" 2>&1 &
 else
+  echo "nohup python tools/train.py $config_file >"$log_file" 2>&1 &"
   nohup python tools/train.py $config_file >"$log_file" 2>&1 &
 fi
 
 sleep 1
 ln -sf "$log_file" $log_link_file
+echo "ln -sf "$log_file" $log_link_file"
 # tail -f "$log_file"
+
 
 

@@ -5,8 +5,7 @@ model_name = 'yolov8_n'
 
 # dataset
 dataset_type = 'YOLOv5VOCDataset'
-data_root = '/home/alex/data/TPS2000_item_det_train_1028_20231008'  # Root path of data
-test_data_root = '/home/alex/data/TPS2000_item_det_test_1004_20230214_v3_shanghai_hongqiaobei'
+data_root = '/home/alex/data/TPS2000_specific_item_det_train_1001_20230710_belt_head'  # Root path of data
 
 img_subdir = 'images'
 ann_subdir = 'annotations'
@@ -16,7 +15,7 @@ train_ann_file = os.path.join(set_subdir, 'trainval.txt')
 val_ann_file = os.path.join(set_subdir, 'test.txt')
 
 # classes
-class_name = ('item',)  # according to the label information of class_with_id.txt, set the class_name
+class_name = ('belt_head',)  # according to the label information of class_with_id.txt, set the class_name
 num_classes = len(class_name)
 metainfo = dict(
     classes=class_name,
@@ -33,18 +32,18 @@ run_name = '%s_%dx%d_%s' % (model_name, img_scale[0], img_scale[1], time_str)
 work_dir = os.path.join('work_dirs', dataset_name, run_name)
 
 # learning rate
-base_lr = 0.01
+base_lr = 0.0001
 lr_factor = 0.01
 weight_decay = 0.0005
 
 # train config
-max_epochs = 200
+max_epochs = 100
 train_batch_size_per_gpu = 64
 save_epoch_intervals = 10
 train_num_workers = 16  # recommend to use train_num_workers = nGPU x 4
 
 # pipeline
-use_mosaic = True
+use_mosaic = False
 
 # model
 model = dict(
@@ -127,7 +126,7 @@ train_dataloader = dict(
         ann_subdir=ann_subdir,
         ann_file=train_ann_file,
         data_prefix=dict(img=img_subdir, sub_data_root=''),
-        filter_cfg=dict(filter_empty_gt=False, min_size=4),
+        filter_cfg=dict(filter_empty_gt=False, min_size=0),
         pipeline=train_pipeline
     )
 )
@@ -144,18 +143,7 @@ val_dataloader = dict(
         pipeline=test_pipeline)
 )
 
-# test与val的data_root不同
-test_dataloader = dict(
-    dataset=dict(
-        type=dataset_type,
-        metainfo=metainfo,
-        data_root=test_data_root,
-        img_subdir=img_subdir,
-        ann_subdir=ann_subdir,
-        ann_file=val_ann_file,
-        data_prefix=dict(img=img_subdir, sub_data_root=''),
-        pipeline=test_pipeline)
-)
+test_dataloader = val_dataloader
 
 
 # evaluator
@@ -185,7 +173,10 @@ default_hooks = dict(
         max_keep_ckpts=10),
     param_scheduler=dict(
         lr_factor=lr_factor,
-        max_epochs=max_epochs),
+        max_epochs=max_epochs,
+        warmup_epochs=3,
+        warmup_mim_iter=10,
+    ),
     # logger output interval
     logger=dict(type='LoggerHook', interval=10))
 

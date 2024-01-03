@@ -174,7 +174,8 @@ def main():
             DumpResults(out_file_path=args.out))
 
     # start testing
-    runner.test()
+    metrics = runner.test()
+    print('work_dir: %s' % args.work_dir)
 
 
 if __name__ == '__main__':

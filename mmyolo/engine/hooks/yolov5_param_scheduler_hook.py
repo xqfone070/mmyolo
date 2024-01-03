@@ -35,6 +35,8 @@ class YOLOv5ParamSchedulerHook(ParamSchedulerHook):
                  warmup_bias_lr: float = 0.1,
                  warmup_momentum: float = 0.8,
                  warmup_mim_iter: int = 1000,
+                 # used while resume, reset the base_lr
+                 base_lr: float = None,
                  **kwargs):
 
         assert scheduler_type in self.scheduler_maps
@@ -48,6 +50,7 @@ class YOLOv5ParamSchedulerHook(ParamSchedulerHook):
         self.scheduler_fn = self.scheduler_maps[scheduler_type](**kwargs)
 
         self._warmup_end = False
+        self._fix_base_lr = base_lr
         self._base_lr = None
         self._base_momentum = None
 
@@ -63,10 +66,13 @@ class YOLOv5ParamSchedulerHook(ParamSchedulerHook):
             # as the initial value.
             group.setdefault('initial_lr', group['lr'])
             group.setdefault('initial_momentum', group.get('momentum', -1))
+            if self._fix_base_lr is not None:
+                group['initial_lr'] = self._fix_base_lr
 
         self._base_lr = [
             group['initial_lr'] for group in optimizer.param_groups
         ]
+
         self._base_momentum = [
             group['initial_momentum'] for group in optimizer.param_groups
         ]
