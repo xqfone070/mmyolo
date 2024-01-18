@@ -3,13 +3,13 @@ import time
 
 _base_ = [
     'mmdet::_base_/default_runtime.py',
-    'mmdet::_base_/models/faster-rcnn_r50_fpn.py',
+    '../_base_/models/faster-rcnn_yolov8-rpn.py',
     'mmdet::_base_/schedules/schedule_1x.py',
     'coco_detection_custom_640x640_mosaic.py',
 ]
 
 
-model_name = 'faster-rcnn_r50_fpn'
+model_name = 'faster-rcnn_yolov8-s_rpn'
 dataset_name = 'coco_detection'
 time_str = time.strftime('%Y%m%d_%H%M%S', time.localtime(time.time()))
 run_name = '%s_%dx%d_%s' % (model_name, _base_.img_scale[0], _base_.img_scale[1], time_str)
