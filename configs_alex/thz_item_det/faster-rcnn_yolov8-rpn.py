@@ -1,7 +1,7 @@
 _base_ = ['../../configs/_base_/default_runtime.py',
           '../../configs/_base_/det_p5_tta.py',
           '../_base_/models/faster-rcnn_yolov8-rpn.py',
-          '../_base_/datasets/voc.py'
+          '../_base_/datasets/voc_custom.py'
           ]
 
 data_root = '/home/alex/data/TPS2000_item_det_train_1028_20231008'  # Root path of data
