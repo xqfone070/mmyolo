@@ -2,10 +2,10 @@ import os
 import time
 
 _base_ = [
-    '../_base_/models/faster-rcnn_r50_fpn.py',
-    'coco_detection_custom.py',
-    '../_base_/schedules/schedule_1x.py',
-    '../_base_/default_runtime.py'
+    'mmdet::_base_/default_runtime.py',
+    'mmdet::_base_/models/faster-rcnn_r50_fpn.py',
+    'mmdet::_base_/schedules/schedule_1x.py',
+    'coco_detection_custom_1333x800.py',
 ]
 
 model_name = 'faster-rcnn_r50_fpn'
