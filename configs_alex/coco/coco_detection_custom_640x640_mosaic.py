@@ -76,8 +76,8 @@ test_pipeline = [
 
 
 train_dataloader = dict(
-    batch_size=4,
-    num_workers=0,
+    batch_size=8,
+    num_workers=4,
     persistent_workers=False,
     dataset=dict(
         _scope_='mmyolo',
