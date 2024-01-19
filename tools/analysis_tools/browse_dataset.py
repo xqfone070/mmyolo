@@ -162,7 +162,9 @@ class InspectCompose(Compose):
         for t in self.ptransforms:
             data = t(data)
             # Keep the same meta_keys in the PackDetInputs
-            self.transforms[-1].meta_keys = [key for key in data]
+            # self.transforms[-1].meta_keys = [key for key in data']
+            # alex mod: 避免coco数据集PackDetInputs时，将dataset也拷贝进去
+            self.transforms[-1].meta_keys = [key for key in data if key != 'dataset']
             data_sample = self.transforms[-1](data)
             if data is None:
                 return None
