@@ -1,6 +1,7 @@
 import os
 import time
 
+
 _base_ = [
     'mmdet::_base_/default_runtime.py',
     '../_base_/models/faster-rcnn_yolov8-rpn.py',
@@ -9,7 +10,9 @@ _base_ = [
 ]
 
 
-model_name = 'faster-rcnn_yolov8-s_rpn'
+batch_size = 16
+
+model_name = 'faster-rcnn_yolov8-s_bone'
 dataset_name = 'coco_detection'
 time_str = time.strftime('%Y%m%d_%H%M%S', time.localtime(time.time()))
 run_name = '%s_%dx%d_%s' % (model_name, _base_.img_scale[0], _base_.img_scale[1], time_str)
@@ -22,3 +25,8 @@ visualizer = dict(vis_backends=[
     dict(type='LocalVisBackend'),
     dict(type='WandbVisBackend', init_kwargs=wandb_init_kwargs)
 ])
+
+
+train_dataloader = dict(
+    batch_size=batch_size
+)

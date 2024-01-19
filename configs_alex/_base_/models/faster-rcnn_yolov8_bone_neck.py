@@ -16,8 +16,8 @@ def make_div(x, factor, div=8):
     return math.ceil(x * factor / div) * div
 
 
-bk_out_channels = [256, 512, last_stage_out_channels]
-neck_in_channels = [make_div(c, widen_factor) for c in bk_out_channels]
+bone_out_channels = [256, 512, last_stage_out_channels]
+neck_in_channels = [make_div(c, widen_factor) for c in bone_out_channels]
 neck_out_channels = 256
 neck_real_out_channels = make_div(neck_out_channels, widen_factor)
 

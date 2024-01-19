@@ -22,3 +22,4 @@ visualizer = dict(vis_backends=[
     dict(type='LocalVisBackend'),
     dict(type='WandbVisBackend', init_kwargs=wandb_init_kwargs)
 ])
+

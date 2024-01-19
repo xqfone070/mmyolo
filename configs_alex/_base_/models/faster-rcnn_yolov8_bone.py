@@ -16,12 +16,10 @@ def make_div(x, factor, div=8):
     return math.ceil(x * factor / div) * div
 
 
-bk_out_channels = [256, 512, last_stage_out_channels]
-neck_in_channels = [make_div(c, widen_factor) for c in bk_out_channels]
-neck_out_channels = 256
-neck_real_out_channels = make_div(neck_out_channels, widen_factor)
-
 strides = [8, 16, 32]
+bone_out_channels = [256, 512, last_stage_out_channels]
+neck_in_channels = [make_div(c, widen_factor) for c in bone_out_channels]
+
 
 model = dict(
     backbone=dict(
@@ -35,22 +33,10 @@ model = dict(
         norm_cfg=norm_cfg,
         act_cfg=dict(type='SiLU', inplace=True)),
     neck=dict(
-        _delete_=True,
-        _scope_='mmyolo',
-        # alex修改：继承自YOLOv8PAFPN， 将neck的输出改为相同大小
-        type='YOLOv8PAFPNAlex',
-        deepen_factor=deepen_factor,
-        widen_factor=widen_factor,
-        in_channels=[256, 512, last_stage_out_channels],
-        out_channels=[256, 512, last_stage_out_channels],
-        # alex修改：将neck的输出改为相同大小
-        final_out_channels=neck_out_channels,
-        num_csp_blocks=3,
-        norm_cfg=norm_cfg,
-        act_cfg=dict(type='SiLU', inplace=True)),
-    rpn_head=dict(
-        in_channels=neck_real_out_channels,
-    ),
+        type='FPN',
+        in_channels=neck_in_channels,
+        out_channels=256,
+        num_outs=5),
     roi_head=dict(
         bbox_roi_extractor=dict(
             featmap_strides=strides

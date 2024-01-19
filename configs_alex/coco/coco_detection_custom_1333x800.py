@@ -8,7 +8,7 @@ _base_.train_pipeline[2].scale = img_scale
 _base_.test_pipeline[1].scale = img_scale
 
 train_dataloader = dict(
-    batch_size=4,
+    batch_size=2,
     num_workers=4,
     persistent_workers=True,
     dataset=dict(
