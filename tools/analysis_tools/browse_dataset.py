@@ -176,6 +176,27 @@ class InspectCompose(Compose):
         return data
 
 
+# add by alex
+def update_visualizer_cfg(cfg):
+    # ensure visualizer containing name key
+    cfg.setdefault('save_dir', 'visualizer_save_dir')
+
+    # 删除wandb
+    cfg.vis_backends = [bk for bk in cfg.vis_backends if bk.type != 'WandbVisBackend']
+
+
+def mod_cfg(cfg):
+    # 设置单线程加载数据，用于debug
+    cfg.test_dataloader.num_workers = 0
+    cfg.test_dataloader.persistent_workers = False
+
+    # 确保visualizer有save_dir目录，否则mmengine会报错
+    cfg.visualizer.setdefault('save_dir', 'visualizer_save_dir')
+
+    # 删除wandb
+    cfg.visualizer.vis_backends = [bk for bk in cfg.visualizer.vis_backends if bk.type != 'WandbVisBackend']
+
+
 def main():
     args = parse_args()
     cfg = Config.fromfile(args.config)
@@ -184,8 +205,12 @@ def main():
 
     init_default_scope(cfg.get('default_scope', 'mmyolo'))
 
+    # add by alex
+    mod_cfg(cfg)
+
     dataset_cfg = cfg.get(args.phase + '_dataloader').get('dataset')
     dataset = DATASETS.build(dataset_cfg)
+
     visualizer = VISUALIZERS.build(cfg.visualizer)
     visualizer.dataset_meta = dataset.metainfo
 
