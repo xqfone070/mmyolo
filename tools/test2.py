@@ -70,6 +70,14 @@ def parse_args():
     if 'LOCAL_RANK' not in os.environ:
         os.environ['LOCAL_RANK'] = str(args.local_rank)
 
+    return args
+
+
+def mod_args(args):
+    if not os.path.exists(args.work_dir):
+        print('work_dir not exist, %s' % args.work_dir)
+        exit(0)
+
     # find config file in work dir
     config_file_pattern = os.path.join(args.work_dir, '*.py')
     config_files = glob.glob(config_file_pattern)
@@ -84,11 +92,34 @@ def parse_args():
         ck_files = glob.glob(ck_pattern)
         assert (len(ck_files) == 1)
         args.checkpoint = ck_files[0]
+
+    args.work_dir = os.path.join(args.work_dir, 'test')
+    print('mod_args', '=' * 50)
+    print('args.config = %s' % args.config)
+    print('args.checkpoint = %s' % args.checkpoint)
+    print('args.work_dir = %s' % args.work_dir)
     return args
+
+
+def mod_cfg(cfg):
+    # 设置单线程加载数据，用于debug
+    cfg.test_dataloader.num_workers = 0
+    cfg.test_dataloader.persistent_workers = False
+
+    # 删除wandb
+    cfg.visualizer.vis_backends = [bk for bk in cfg.visualizer.vis_backends if bk.type != 'WandbVisBackend']
+
+    default_hooks = cfg.default_hooks
+    if 'visualization' in default_hooks:
+        visualization_hook = default_hooks['visualization']
+        # Turn off visualization
+        visualization_hook['draw'] = False
 
 
 def main():
     args = parse_args()
+    # mod args by alex
+    args = mod_args(args)
 
     # load config
     cfg = Config.fromfile(args.config)
@@ -98,8 +129,6 @@ def main():
     if args.cfg_options is not None:
         cfg.merge_from_dict(args.cfg_options)
 
-    # 设置工作目录为原目录下的子目录test下面
-    cfg.work_dir = os.path.join(args.work_dir, 'test')
     cfg.load_from = args.checkpoint
 
     # 替换test_data_root
@@ -116,12 +145,8 @@ def main():
         test_data_cfg.data_prefix.img = img_subdir
         test_data_cfg.data_prefix.sub_data_root = ''
 
-    # 设置单线程加载数据，用于debug
-    # cfg.test_dataloader.num_workers = 0
-    # cfg.test_dataloader.persistent_workers = False
-
-    # 删除wandb
-    cfg.visualizer.vis_backends = [bk for bk in cfg.visualizer.vis_backends if bk.type != 'WandbVisBackend']
+    # mod cfg by alex
+    mod_cfg(cfg)
 
     if args.show or args.show_dir:
         cfg = trigger_visualization_hook(cfg, args)
@@ -174,8 +199,7 @@ def main():
             DumpResults(out_file_path=args.out))
 
     # start testing
-    metrics = runner.test()
-    print('work_dir: %s' % args.work_dir)
+    runner.test()
 
 
 if __name__ == '__main__':

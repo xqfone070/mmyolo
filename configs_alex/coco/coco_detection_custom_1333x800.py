@@ -2,7 +2,7 @@ _base_ = 'mmdet::_base_/datasets/coco_detection.py'
 
 data_root = '/home/alex/data/coco/'
 
-
+dataset_name = 'coco_detection'
 img_scale = (1333, 800)
 _base_.train_pipeline[2].scale = img_scale
 _base_.test_pipeline[1].scale = img_scale

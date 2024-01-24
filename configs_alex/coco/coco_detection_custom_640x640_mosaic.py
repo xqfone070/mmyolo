@@ -61,17 +61,13 @@ train_pipeline = [
 
 test_pipeline = [
     dict(type='LoadImageFromFile', backend_args=_base_.backend_args),
-    dict(type='YOLOv5KeepRatioResize', scale=img_scale),
-    dict(
-        type='LetterResize',
-        scale=img_scale,
-        allow_scale_up=False,
-        pad_val=dict(img=114)),
+    # 注意，由于mmdetection中的header不支持pad_param参数，所以FasterRcnn中不能使用yolov5的LetterResize
+    dict(type='Resize', scale=img_scale, keep_ratio=True),
     dict(type='LoadAnnotations', with_bbox=True, _scope_='mmdet'),
     dict(
         type='mmdet.PackDetInputs',
         meta_keys=('img_id', 'img_path', 'ori_shape', 'img_shape',
-                   'scale_factor', 'pad_param'))
+                   'scale_factor'))
 ]
 
 
