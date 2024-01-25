@@ -23,6 +23,8 @@ class YOLOv8PAFPNAlex(YOLOv8PAFPN):
                      type='BN', momentum=0.03, eps=0.001),
                  act_cfg: ConfigType = dict(type='SiLU', inplace=True),
                  init_cfg: OptMultiConfig = None):
+
+        self.final_out_channels = final_out_channels
         super().__init__(
             in_channels=in_channels,
             out_channels=out_channels,
@@ -34,21 +36,12 @@ class YOLOv8PAFPNAlex(YOLOv8PAFPN):
             act_cfg=act_cfg,
             init_cfg=init_cfg)
 
-        self.final_layers = nn.ModuleList()
-        for idx in range(len(out_channels)):
-            self.final_layers.append(
-                ConvModule(
-                    make_divisible(self.out_channels[idx], self.widen_factor),
-                    make_divisible(final_out_channels, self.widen_factor),
-                    1,
-                    norm_cfg=norm_cfg,
-                    act_cfg=act_cfg))
+    # rewrite by alex
+    def build_out_layer(self, idx: int):
+        return ConvModule(
+            make_divisible(self.out_channels[idx], self.widen_factor),
+            make_divisible(self.final_out_channels, self.widen_factor),
+            1,
+            norm_cfg=self.norm_cfg,
+            act_cfg=self.act_cfg)
 
-    def forward(self, inputs: List[torch.Tensor]) -> tuple:
-        super_results = super().forward(inputs)
-        results = []
-        for idx in range(len(self.out_channels)):
-            o = self.final_layers[idx](super_results[idx])
-            results.append(o)
-
-        return tuple(results)

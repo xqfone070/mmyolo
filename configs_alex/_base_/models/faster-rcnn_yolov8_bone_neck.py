@@ -50,10 +50,17 @@ model = dict(
         act_cfg=dict(type='SiLU', inplace=True)),
     rpn_head=dict(
         in_channels=neck_real_out_channels,
+        anchor_generator=dict(
+            strides=strides
+        ),
     ),
     roi_head=dict(
         bbox_roi_extractor=dict(
+            out_channels=neck_real_out_channels,
             featmap_strides=strides
+        ),
+        bbox_head=dict(
+            in_channels=neck_real_out_channels,
         )
     )
 )
