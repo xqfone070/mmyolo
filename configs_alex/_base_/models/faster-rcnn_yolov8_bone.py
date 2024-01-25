@@ -36,7 +36,11 @@ model = dict(
         type='FPN',
         in_channels=neck_in_channels,
         out_channels=256,
-        num_outs=5),
+        num_outs=3),
+    rpn_head=dict(
+        anchor_generator=dict(
+            strides=strides),
+        ),
     roi_head=dict(
         bbox_roi_extractor=dict(
             featmap_strides=strides
