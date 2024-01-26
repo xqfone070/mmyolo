@@ -3,10 +3,10 @@ import time
 
 
 _base_ = [
-    'default_runtime_custom.py',
+    'common/default_runtime_custom.py',
     '../_base_/models/faster-rcnn_yolov8_bone_neck_head.py',
     'mmdet::_base_/schedules/schedule_1x.py',
-    'coco_detection_custom_640x640_mosaic.py',
+    'common/coco_detection_custom_640x640_mosaic.py',
 ]
 
 

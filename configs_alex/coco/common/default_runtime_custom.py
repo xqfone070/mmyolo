@@ -21,3 +21,7 @@ visualizer = dict(vis_backends=[
     dict(type='LocalVisBackend'),
     dict(type='WandbVisBackend', init_kwargs=wandb_init_kwargs)
 ])
+
+# Single-scale training is recommended to
+# be turned on, which can speed up training.
+env_cfg = dict(cudnn_benchmark=True)

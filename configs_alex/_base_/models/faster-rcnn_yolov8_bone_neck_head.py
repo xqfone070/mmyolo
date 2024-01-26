@@ -18,8 +18,6 @@ def make_div(x, factor, div=8):
 
 # backbone about
 strides = [8, 16, 32]
-bone_out_channels = [256, 512, last_stage_out_channels]
-neck_in_channels = [make_div(c, widen_factor) for c in bone_out_channels]
 
 # neck about
 neck_out_channels = 256

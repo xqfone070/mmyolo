@@ -10,6 +10,7 @@ log_file=${log_dir}/nohup_${date_str}.log
 log_link_file='nohup.log'
 
 # gpu
+#export CUDA_VISIBLE_DEVICES=0,1,2,3
 export CUDA_VISIBLE_DEVICES=0,1,2,3
 comma_num=`echo $CUDA_VISIBLE_DEVICES | grep -o "," | wc -l`
 gpu_num=`expr $comma_num + 1`
@@ -23,9 +24,7 @@ else
 fi
 
 
-# config_file='configs_alex/thz_body_det/yolov5.py'
-config_file='configs_alex/thz_item_det/yolov8.py'
-# config_file='configs_alex/thz_body_det/yolov8.py'
+config_file='configs_alex/coco/faster-rcnn_yolov8-s_rpn_300e_coco.py'
 echo "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES"
 echo "gpu_num=$gpu_num"
 echo "dist_train=$dist_train"

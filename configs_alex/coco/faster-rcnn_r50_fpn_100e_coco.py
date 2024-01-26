@@ -1,10 +1,10 @@
 import os
 
 _base_ = [
-    'default_runtime_custom.py',
+    'common/default_runtime_custom.py',
     'mmdet::_base_/models/faster-rcnn_r50_fpn.py',
     '../_base_/schedules/schedule_cosine_100e.py',
-    'coco_detection_custom_640x640_mosaic.py',
+    'common/coco_detection_custom_640x640_mosaic.py',
 ]
 
 
