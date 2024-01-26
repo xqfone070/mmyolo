@@ -9,6 +9,7 @@ from .yolov8_head import YOLOv8Head
 
 @MODELS.register_module()
 class YOLOv8RPNHead(YOLOv8Head):
+    # TwoStageDetector初始化rpn的时候会传入num_classes,但是YOLOV8Head不接收该参数，所以需要进行扩展
     def __init__(self,
                  head_module: ConfigType,
                  num_classes: int = 1,
@@ -16,6 +17,8 @@ class YOLOv8RPNHead(YOLOv8Head):
         head_module.update(num_classes=num_classes)
         super(YOLOv8RPNHead, self).__init__(head_module, **kwargs)
 
+    # 作为rpn头时，传入的objectnesses固定为None
+    # 默认的情况YOLOV8Head训练时，传入的objectness为bbox_dist_preds，但是predict的时候不需要改参数来计算损失
     def predict_by_feat(self,
                         cls_scores: List[Tensor],
                         bbox_preds: List[Tensor],

@@ -372,7 +372,9 @@ class YOLOv5Head(BaseDenseHead):
              img_meta) in zip(flatten_decoded_bboxes, flatten_cls_scores,
                               flatten_objectness, batch_img_metas):
             ori_shape = img_meta['ori_shape']
-            scale_factor = img_meta['scale_factor']
+            # mod by alex
+            # scale_factor = img_meta['scale_factor']
+            scale_factor = img_meta['scale_factor'] if 'scale_factor' in img_meta.keys() else (1.0, 1.0)
             if 'pad_param' in img_meta:
                 pad_param = img_meta['pad_param']
             else:

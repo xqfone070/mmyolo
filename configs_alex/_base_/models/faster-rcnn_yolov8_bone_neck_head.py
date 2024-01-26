@@ -26,11 +26,12 @@ neck_out_channels = 256
 neck_real_out_channels = make_div(neck_out_channels, widen_factor)
 
 # head about
-loss_cls_weight = 0.5
-loss_bbox_weight = 7.5
+rpn_loss_ratio = 0.1
+loss_cls_weight = 0.5 * rpn_loss_ratio
+loss_bbox_weight = 7.5 * rpn_loss_ratio
 # Since the dfloss is implemented differently in the official
 # and mmdet, we're going to divide loss_weight by 4.
-loss_dfl_weight = 1.5 / 4
+loss_dfl_weight = 1.5 / 4 * rpn_loss_ratio
 
 tal_topk = 10  # Number of bbox selected in each level
 tal_alpha = 0.5  # A Hyper-parameter related to alignment_metrics
@@ -71,10 +72,12 @@ model = dict(
         norm_cfg=norm_cfg,
         act_cfg=dict(type='SiLU', inplace=True)),
     rpn_head=dict(
+        _delete_=True,
+        _scope_='mmyolo',
         type='YOLOv8RPNHead',
         head_module=dict(
             type='YOLOv8HeadModule',
-            num_classes=_base_.num_classes,
+            num_classes=1,
             in_channels=[neck_out_channels] * 3,
             widen_factor=widen_factor,
             reg_max=16,
@@ -103,7 +106,11 @@ model = dict(
             loss_weight=loss_dfl_weight)),
     roi_head=dict(
         bbox_roi_extractor=dict(
+            out_channels=neck_real_out_channels,
             featmap_strides=strides
+        ),
+        bbox_head=dict(
+            in_channels=neck_real_out_channels,
         )
     ),
     # model training and testing settings
@@ -113,7 +120,7 @@ model = dict(
             _scope_='mmyolo',
             assigner=dict(
                 type='BatchTaskAlignedAssigner',
-                num_classes=_base_.num_classes,
+                num_classes=1,
                 use_ciou=True,
                 topk=tal_topk,
                 alpha=tal_alpha,
