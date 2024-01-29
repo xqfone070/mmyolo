@@ -298,7 +298,7 @@ default_hooks = dict(
         max_epochs=max_epochs),
     checkpoint=dict(
         type='CheckpointHook',
-        interval=save_epoch_intervals,
+        interval=1,
         save_best='auto',
         max_keep_ckpts=max_keep_ckpts))
 
@@ -326,7 +326,7 @@ test_evaluator = val_evaluator
 train_cfg = dict(
     type='EpochBasedTrainLoop',
     max_epochs=max_epochs,
-    val_interval=save_epoch_intervals,
+    val_interval=1,
     dynamic_intervals=[((max_epochs - close_mosaic_epochs),
                         val_interval_stage2)])
 
