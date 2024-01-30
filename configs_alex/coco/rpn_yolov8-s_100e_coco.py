@@ -13,6 +13,10 @@ work_dir = os.path.join('work_dirs', _base_.dataset_name, run_name)
 
 batch_size = 16
 
+val_evaluator = dict(metric='proposal_fast')
+test_evaluator = val_evaluator
+
+
 # wandb
 wandb_init_kwargs = dict(
     project=_base_.dataset_name,

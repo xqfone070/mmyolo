@@ -27,6 +27,7 @@ tal_topk = 10  # Number of bbox selected in each level
 tal_alpha = 0.5  # A Hyper-parameter related to alignment_metrics
 tal_beta = 6.0  # A Hyper-parameter related to alignment_metrics
 
+num_classes = 1
 
 model_test_cfg = dict(
     # The config of multi-label for multi-class prediction.
@@ -40,6 +41,7 @@ model_test_cfg = dict(
 model = dict(
     type='RPN',
     data_preprocessor=dict(
+        _scope_='mmdet',
         type='DetDataPreprocessor',
         mean=[0., 0., 0.],
         std=[255., 255., 255.],
@@ -70,9 +72,10 @@ model = dict(
     rpn_head=dict(
         _scope_='mmyolo',
         type='YOLOv8RPNHead',
+        num_classes=num_classes,
         head_module=dict(
             type='YOLOv8HeadModule',
-            num_classes=1,
+            num_classes=num_classes,
             in_channels=[neck_out_channels] * 3,
             widen_factor=widen_factor,
             reg_max=16,
@@ -105,7 +108,7 @@ model = dict(
             _scope_='mmyolo',
             assigner=dict(
                 type='BatchTaskAlignedAssigner',
-                num_classes=1,
+                num_classes=num_classes,
                 use_ciou=True,
                 topk=tal_topk,
                 alpha=tal_alpha,
@@ -119,10 +122,12 @@ model = dict(
                 add_gt_as_proposals=False),
             allowed_border=-1,
             pos_weight=-1,
-            debug=False)
+            debug=False
+        )
     ),
     test_cfg=dict(
         rpn=model_test_cfg
     )
+
 )
 
