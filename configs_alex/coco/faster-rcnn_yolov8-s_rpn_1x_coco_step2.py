@@ -8,7 +8,8 @@ _base_ = [
     'common/coco_detection_custom_640x640_mosaic.py',
 ]
 
-load_from = 'work_dirs/coco_detection/rpn_yolov8-s_640x640_20240130_090149/best_coco_AR@100_epoch_4.pth'
+# 注意确认faster_rcnn与load_from的rpn网络的预处理data_preprocessor参数是一致的
+load_from = 'work_dirs/coco_detection/rpn_yolov8-s_640x640_20240130_090149/best_coco_AR@100_epoch_100.pth'
 
 batch_size = 16
 
@@ -16,9 +17,13 @@ model_name = 'faster-rcnn_yolov8-s_rpn'
 run_name = '%s_%dx%d_%s' % (model_name, _base_.img_scale[0], _base_.img_scale[1], _base_.run_time)
 work_dir = os.path.join('work_dirs', _base_.dataset_name, run_name)
 
+
+# 必须设置，否则冻结rpn_head后会报错
+find_unused_parameters = True
+
 # freeze backbone and neck
 model = dict(
-    backbone=dict(frozen_stages=5),
+    backbone=dict(frozen_stages=4),
     neck=dict(freeze_all=True),
     rpn_head=dict(
         loss_cls=dict(loss_weight=0.0),
