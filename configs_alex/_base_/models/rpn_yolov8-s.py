@@ -14,7 +14,7 @@ norm_cfg = dict(type='BN', momentum=0.03, eps=0.001)
 strides = [8, 16, 32]
 
 # neck about
-neck_out_channels = 256
+neck_out_channels = 512
 
 # head about
 loss_cls_weight = 0.5

@@ -19,7 +19,7 @@ def make_div(x, factor, div=8):
 strides = [8, 16, 32]
 
 # neck about
-neck_out_channels = 256
+neck_out_channels = 512
 neck_real_out_channels = make_div(neck_out_channels, widen_factor)
 
 # head about
