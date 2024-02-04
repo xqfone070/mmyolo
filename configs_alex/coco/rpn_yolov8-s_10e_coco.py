@@ -2,7 +2,7 @@ import os
 import time
 
 _base_ = [
-    'common/yolov8_runtime_schedule_100e.py',
+    'common/yolov8_runtime_schedule_10e.py',
     '../_base_/models/rpn_yolov8-s.py',
     'common/coco_detection_custom_640x640_mosaic.py',
 ]
@@ -10,7 +10,6 @@ _base_ = [
 model_name = 'rpn_yolov8-s'
 run_name = '%s_%dx%d_%s' % (model_name, _base_.img_scale[0], _base_.img_scale[1], _base_.run_time)
 work_dir = os.path.join('work_dirs', _base_.dataset_name, run_name)
-
 batch_size = 8
 
 val_evaluator = dict(metric='proposal_fast')
