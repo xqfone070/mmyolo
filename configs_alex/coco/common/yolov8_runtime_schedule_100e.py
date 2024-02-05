@@ -8,4 +8,4 @@ default_hooks = dict(
 )
 
 
-train_cfg = dict(max_epochs=max_epochs)
+train_cfg = dict(max_epochs=max_epochs, val_interval=5)
