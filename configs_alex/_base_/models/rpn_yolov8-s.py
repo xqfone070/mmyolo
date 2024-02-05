@@ -33,10 +33,10 @@ model_test_cfg = dict(
     # The config of multi-label for multi-class prediction.
     multi_label=True,
     # The number of boxes before NMS
-    nms_pre=30000,
+    nms_pre=2000,
     score_thr=0.001,  # Threshold to filter out boxes.
     nms=dict(type='nms', iou_threshold=0.7),  # NMS type and threshold
-    max_per_img=300)  # Max number of detections of each image
+    max_per_img=1000)  # Max number of detections of each image
 
 model = dict(
     type='RPN',
