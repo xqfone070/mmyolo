@@ -3,7 +3,7 @@ _base_ = ['common/yolov8_runtime_schedule_100e.py',
           '../_base_/models/yolov8-s-alex.py']
 
 
-batch_size = 16
+batch_size = 8
 # Worker to pre-fetch data for each single GPU during training
 
 model_name = 'yolov8-s-alex'

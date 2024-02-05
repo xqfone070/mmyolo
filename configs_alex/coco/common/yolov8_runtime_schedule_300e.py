@@ -2,6 +2,7 @@ _base_ = 'default_runtime_custom.py'
 
 batch_size = 16
 max_epochs = 300
+interval = 10
 base_lr = 0.01
 lr_factor = 0.01
 weight_decay = 0.0005
@@ -20,12 +21,14 @@ optim_wrapper = dict(
     constructor='mmyolo.YOLOv5OptimizerConstructor')
 
 default_hooks = dict(
+    checkpoint=dict(interval=interval),
     param_scheduler=dict(
         type='mmyolo.YOLOv5ParamSchedulerHook',
         scheduler_type='linear',
         lr_factor=lr_factor,
         max_epochs=max_epochs)
 )
+
 
 custom_hooks = [
     dict(
@@ -38,6 +41,6 @@ custom_hooks = [
 ]
 
 # train/val/test cfg
-train_cfg = dict(type='EpochBasedTrainLoop', max_epochs=max_epochs, val_interval=10)
+train_cfg = dict(type='EpochBasedTrainLoop', max_epochs=max_epochs, val_interval=interval)
 val_cfg = dict(type='ValLoop')
 test_cfg = dict(type='TestLoop')
