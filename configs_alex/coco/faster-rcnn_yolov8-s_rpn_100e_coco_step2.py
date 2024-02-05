@@ -4,14 +4,14 @@ import time
 _base_ = [
     'common/default_runtime_custom.py',
     '../_base_/models/faster-rcnn_yolov8-s_rpn.py',
-    'mmdet::_base_/schedules/schedule_1x.py',
+    '../_base_/schedules/schedule_cosine_100e.py',
     'common/coco_detection_custom_640x640_mosaic.py',
 ]
 
 # 注意确认faster_rcnn与load_from的rpn网络的预处理data_preprocessor参数是一致的
 load_from = 'work_dirs/coco_detection/rpn_yolov8-s_640x640_20240201_165901/best_coco_AR@100_epoch_72.pth'
 
-batch_size = 8
+batch_size = 16
 
 model_name = 'faster-rcnn_yolov8-s_rpn'
 run_name = '%s_%dx%d_%s' % (model_name, _base_.img_scale[0], _base_.img_scale[1], _base_.run_time)
@@ -27,10 +27,10 @@ model = dict(
     neck=dict(freeze_all=True),
     rpn_head=dict(
         freeze_all=True,
-        # loss_cls=dict(loss_weight=0.0),
-        # loss_bbox=dict(loss_weight=0.0),
-        # loss_dfl=dict(loss_weight=0.0),
-    )
+        loss_cls=dict(loss_weight=0.0),
+        loss_bbox=dict(loss_weight=0.0),
+        loss_dfl=dict(loss_weight=0.0),
+    ),
 )
 
 # yolo系列与faster-rcnn的optimizer的constructor是不同的，从这个角度看也是要分两步训练的
