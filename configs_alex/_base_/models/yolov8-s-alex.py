@@ -1,6 +1,6 @@
 _base_ = 'yolov8-s.py'
 
-neck_out_channels = 256
+neck_out_channels = 512
 model = dict(
     neck=dict(
         _scope_='mmyolo',
