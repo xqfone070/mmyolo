@@ -1,6 +1,6 @@
 _base_ = 'mmdet::_base_/schedules/schedule_1x.py'
 
-warmup_epochs = 5
+warmup_epochs = 1
 max_epochs = 100
 num_last_epochs = 5
 
