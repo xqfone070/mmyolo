@@ -2,7 +2,7 @@ import os
 import time
 
 _base_ = [
-    '../common/yolov8_runtime_schedule_10e.py',
+    '../common/yolov8_runtime_schedule_50e.py',
     '../../_base_/models/rpn_yolov8-s.py',
     '../common/coco_detection_custom_640x640_mosaic.py',
 ]

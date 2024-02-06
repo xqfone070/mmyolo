@@ -2,14 +2,15 @@ import os
 import time
 
 _base_ = [
-    'common/default_runtime_custom.py',
-    '../_base_/models/faster-rcnn_yolov8-s_rpn.py',
+    '../common/default_runtime_custom.py',
+    '../../_base_/models/faster-rcnn_yolov8-s_rpn.py',
     'mmdet::_base_/schedules/schedule_1x.py',
-    'common/coco_detection_custom_640x640_mosaic.py',
+    '../common/coco_detection_custom_640x640_mosaic.py',
 ]
 
+
 # 注意确认faster_rcnn与load_from的rpn网络的预处理data_preprocessor参数是一致的
-load_from = 'work_dirs/coco_detection/rpn_yolov8-s_640x640_20240201_165901/best_coco_AR@100_epoch_72.pth'
+load_from = 'work_dirs/coco_detection/rpn_yolov8-s_640x640_20240206_095855/best_coco_AR@100_epoch_10.pth'
 
 batch_size = 8
 
@@ -21,15 +22,15 @@ work_dir = os.path.join('work_dirs', _base_.dataset_name, run_name)
 # 必须设置，否则冻结rpn_head后会报错
 find_unused_parameters = True
 
-# freeze backbone and neck
+# freeze backbone, neck, rpn head, train roi head
 model = dict(
     backbone=dict(frozen_stages=4),
     neck=dict(freeze_all=True),
     rpn_head=dict(
         freeze_all=True,
-        # loss_cls=dict(loss_weight=0.0),
-        # loss_bbox=dict(loss_weight=0.0),
-        # loss_dfl=dict(loss_weight=0.0),
+        loss_cls=dict(loss_weight=0.0),
+        loss_bbox=dict(loss_weight=0.0),
+        loss_dfl=dict(loss_weight=0.0),
     )
 )
 
