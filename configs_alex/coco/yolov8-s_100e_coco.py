@@ -1,3 +1,4 @@
+import os
 _base_ = ['common/yolov8_runtime_schedule_100e.py',
           'common/coco_detection_custom_640x640_mosaic.py',
           '../_base_/models/yolov8-s-alex.py']
@@ -8,7 +9,7 @@ batch_size = 8
 
 model_name = 'yolov8-s-alex'
 run_name = '%s_%dx%d_%s' % (model_name, _base_.img_scale[0], _base_.img_scale[1], _base_.run_time)
-
+work_dir = os.path.join('work_dirs', _base_.dataset_name, run_name)
 
 # wandb
 wandb_init_kwargs = dict(
